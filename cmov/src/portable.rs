@@ -6,51 +6,87 @@
 
 // TODO(tarcieri): more optimized implementation for small integers
 
-use crate::{Cmov, Condition};
+use crate::{Cmov, CmovEq, Condition};
 
 impl Cmov for u16 {
     #[inline(always)]
-    fn cmovz(&mut self, value: Self, condition: Condition) {
+    fn cmovnz(&mut self, value: &Self, condition: Condition) {
         let mut tmp = *self as u64;
-        tmp.cmovz(value as u64, condition);
+        tmp.cmovnz(&(*value as u64), condition);
         *self = tmp as u16;
     }
 
     #[inline(always)]
-    fn cmovnz(&mut self, value: Self, condition: Condition) {
+    fn cmovz(&mut self, value: &Self, condition: Condition) {
         let mut tmp = *self as u64;
-        tmp.cmovnz(value as u64, condition);
+        tmp.cmovz(&(*value as u64), condition);
         *self = tmp as u16;
+    }
+}
+
+impl CmovEq for u16 {
+    #[inline(always)]
+    fn cmovne(&self, rhs: &Self, input: Condition, output: &mut Condition) {
+        (*self as u64).cmovne(&(*rhs as u64), input, output);
+    }
+
+    #[inline(always)]
+    fn cmoveq(&self, rhs: &Self, input: Condition, output: &mut Condition) {
+        (*self as u64).cmoveq(&(*rhs as u64), input, output);
     }
 }
 
 impl Cmov for u32 {
     #[inline(always)]
-    fn cmovz(&mut self, value: Self, condition: Condition) {
+    fn cmovnz(&mut self, value: &Self, condition: Condition) {
         let mut tmp = *self as u64;
-        tmp.cmovz(value as u64, condition);
+        tmp.cmovnz(&(*value as u64), condition);
         *self = tmp as u32;
     }
 
     #[inline(always)]
-    fn cmovnz(&mut self, value: Self, condition: Condition) {
+    fn cmovz(&mut self, value: &Self, condition: Condition) {
         let mut tmp = *self as u64;
-        tmp.cmovnz(value as u64, condition);
+        tmp.cmovz(&(*value as u64), condition);
         *self = tmp as u32;
+    }
+}
+
+impl CmovEq for u32 {
+    #[inline(always)]
+    fn cmovne(&self, rhs: &Self, input: Condition, output: &mut Condition) {
+        (*self as u64).cmovne(&(*rhs as u64), input, output);
+    }
+
+    #[inline(always)]
+    fn cmoveq(&self, rhs: &Self, input: Condition, output: &mut Condition) {
+        (*self as u64).cmoveq(&(*rhs as u64), input, output);
     }
 }
 
 impl Cmov for u64 {
     #[inline(always)]
-    fn cmovz(&mut self, value: Self, condition: Condition) {
-        let mask = (1 ^ is_non_zero(condition)).wrapping_sub(1);
-        *self = (*self & mask) | (value & !mask);
+    fn cmovnz(&mut self, value: &Self, condition: Condition) {
+        let mask = is_non_zero(condition).wrapping_sub(1);
+        *self = (*self & mask) | (*value & !mask);
     }
 
     #[inline(always)]
-    fn cmovnz(&mut self, value: Self, condition: Condition) {
-        let mask = is_non_zero(condition).wrapping_sub(1);
-        *self = (*self & mask) | (value & !mask);
+    fn cmovz(&mut self, value: &Self, condition: Condition) {
+        let mask = (1 ^ is_non_zero(condition)).wrapping_sub(1);
+        *self = (*self & mask) | (*value & !mask);
+    }
+}
+
+impl CmovEq for u64 {
+    #[inline(always)]
+    fn cmovne(&self, rhs: &Self, input: Condition, output: &mut Condition) {
+        output.cmovnz(&input, (self ^ rhs) as u8);
+    }
+
+    #[inline(always)]
+    fn cmoveq(&self, rhs: &Self, input: Condition, output: &mut Condition) {
+        output.cmovz(&input, (self ^ rhs) as u8);
     }
 }
 
